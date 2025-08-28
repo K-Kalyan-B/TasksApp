@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:tasks/data/taskdatabase.dart';
 import 'package:tasks/util/dialog_box.dart';
 import 'package:tasks/util/task_tile.dart';
 
@@ -11,22 +13,39 @@ class HomePage extends StatefulWidget{
 }
 
 class _HomePageState extends State<HomePage> {
+  
+  final box = Hive.box('tasksBox');
+  Tasksdatabase db = Tasksdatabase();
 
-  List tasks = [["Learn Flutter",false]];
+  // List box.box.tasks = [["Learn Flutter",false]];
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    if(box.get("TASKS") == null){
+      db.initData();
+    }else{
+      db.getData();
+    }
+    super.initState();
+  }
+
   TextEditingController mycontroller = TextEditingController();
 
   void onChange(bool? value,int index){
     setState(() {
-      tasks[index][1] = !tasks[index][1];
+      db.tasks[index][1] = !db.tasks[index][1];
     });
+    db.updateData();
   }
 
   void onAdd(){
     setState(() {
-      tasks.add([mycontroller.text,false]);
+      db.tasks.add([mycontroller.text,false]);
     });
     mycontroller.clear();
     Navigator.of(context).pop();
+    db.updateData();
   }
 
   void createTask(){
@@ -37,21 +56,30 @@ class _HomePageState extends State<HomePage> {
       },
     );
   }
+
+  void deleteTask(int index){
+    setState(() {
+      db.tasks.removeAt(index);
+    });
+    db.updateData();
+  }
   @override
   Widget build(BuildContext context) {
     // TODO: implement build
+    db.tasks.sort((a,b) => a[1] == b[1] ? 0 : (a[1] ? 1 : -1));
     return Scaffold(
-        appBar: AppBar(title: Text("My Tasks"),backgroundColor: Colors.yellow,centerTitle: true,),
+        appBar: AppBar(title: Text("My db.tasks"),backgroundColor: Colors.yellow,centerTitle: true,),
         backgroundColor: Colors.yellow[300],
         floatingActionButton: FloatingActionButton(
           onPressed: createTask,
           backgroundColor: Colors.yellow,
-          child: Icon(Icons.add),
+          child: Icon(Icons.add,color: Colors.black,),
         ),
         body: ListView.builder(
-          itemCount: tasks.length,
+          itemCount: db.tasks.length,
+          padding: EdgeInsets.all(12.0),
           itemBuilder: (context, index) {
-            return TaskTile(taskName: tasks[index][0], taskDone: tasks[index][1], onChange: (value)=>onChange(value, index));
+            return TaskTile(taskName: db.tasks[index][0], taskDone: db.tasks[index][1], onChange: (value)=>onChange(value, index),deleteTask: () => deleteTask(index),);
           },
         )
       
